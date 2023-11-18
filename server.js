@@ -19,11 +19,11 @@ const productSchema = new mongoose.Schema({
     foodCategory: { type: String, required: true },
     price: { type: Number, required: true },
     quantity: { type: Number, required: true },
-    sold: { type: Number, required: true},
-    creator: { 
-        email: {type: String, required: true},
-        name: {type: String, required: true}
-     },
+    sold: { type: Number, required: true },
+    creator: {
+        email: { type: String, required: true },
+        name: { type: String, required: true }
+    },
     origin: { type: String, required: true },
     description: { type: String, required: true },
 });
@@ -40,9 +40,9 @@ userSchema.methods.toJSON = function () {
     return obj
 }
 const cartSchema = new mongoose.Schema({
-    user: {type: String},
+    user: { type: String },
     product: { type: Object },
-    quantity: {type: Number}
+    quantity: { type: Number }
 })
 const userModel = mongoose.model('user', userSchema);
 const productModel = mongoose.model('product', productSchema);
@@ -93,7 +93,6 @@ app.post('/login', async (req, res, next) => {
     const { email, password } = req.body;
     try {
         let user = await userModel.findOne({ email: email });
-        console.log(user);
         if (user) {
             const decryptPass = await bcrypt.compare(password, user.password);
             const token = jwt.sign({ user_id: user._id, email }, process.env.SALT)
@@ -110,12 +109,29 @@ app.post('/login', async (req, res, next) => {
         return res.status(400).send('email or password not matched')
     }
 });
-app.post('/logout',(req, res)=>{
-    try{
+app.post('/google-auth', async (req, res) => {
+    const { email, name, profile, _id } = req.body;
+    console.log("body hre",req.body)
+    try {
+        const createdUser = new userModel({
+            email, password: 'googleLogin', profile, name
+        });
+        result = await createdUser.save();
+        const token = jwt.sign({ user_id: _id, email: email }, process.env.SALT)
+        res.cookie('cafeu', token);
+        return res.status(200).send({ email, name, profile, _id})
+
+    }
+    catch (error) {
+        return res.status(400).send('email or password not matched')
+    }
+})
+app.post('/logout', (req, res) => {
+    try {
 
         res.clearCookie('cafeu');
         res.status(200).send("Logout Successfull");
-    }catch(error){
+    } catch (error) {
         res.status(400).send('Bad Request');
     }
 })
@@ -152,12 +168,12 @@ app.get('/products/me', middleWare, async (req, res, next) => {
     }
     res.send(result)
 });
-app.get('/products/:id',middleWare,async (req, res)=>{
+app.get('/products/:id', middleWare, async (req, res) => {
     const id = req.params.id;
-    try{
-        const result = await productModel.findOne({_id: id});
+    try {
+        const result = await productModel.findOne({ _id: id });
         res.status(200).send(result);
-    }catch(error){
+    } catch (error) {
         res.status(404).send('bad request');
     }
 })
@@ -166,7 +182,7 @@ app.post('/products', async (req, res,) => {
     let result;
     try {
         const createdProduct = new productModel({
-            foodName, foodImage, foodCategory, price, quantity,sold:0, creator, origin, description
+            foodName, foodImage, foodCategory, price, quantity, sold: 0, creator, origin, description
         })
         result = await createdProduct.save();
     } catch (error) {
@@ -212,13 +228,13 @@ app.delete('/products/:id', middleWare, async (req, res) => {
 
 // Cart Section
 app.get('/cart', middleWare, async (req, res, next) => {
-   const user = req.user;
-   console.log(user);
-   let result;
-    try{
-        result = await cartModel.find({user:user.email}).exec();
-    }catch(error){
-      return  res.status(400).send('bad request');
+    const user = req.user;
+    console.log(user);
+    let result;
+    try {
+        result = await cartModel.find({ user: user.email }).exec();
+    } catch (error) {
+        return res.status(400).send('bad request');
     }
     res.status(201).send(result);
 });
@@ -228,29 +244,29 @@ app.delete('/cart/:id', middleWare, async (req, res, next) => {
     console.log(user);
     const id = req.params.id;
     let result;
-     try{
-        const rem = await cartModel.deleteOne({_id: id});
+    try {
+        const rem = await cartModel.deleteOne({ _id: id });
         console.log(rem);
-         result = await cartModel.find({user:user.email}).exec();
-         console.log(result);
-     }catch(error){
-       return  res.status(400).send('bad request');
-     }
-     res.status(201).send(result);
- });
+        result = await cartModel.find({ user: user.email }).exec();
+        console.log(result);
+    } catch (error) {
+        return res.status(400).send('bad request');
+    }
+    res.status(201).send(result);
+});
 
 app.post('/cart', middleWare, async (req, res, next) => {
-    const {user, product, quantity} = req.body;
+    const { user, product, quantity } = req.body;
     const createCart = new cartModel({
         user,
         product,
         quantity
     });
     let result;
-    try{
+    try {
         result = await createCart.save();
-    }catch(error){
-      return  res.status(400).send('bad request');
+    } catch (error) {
+        return res.status(400).send('bad request');
     }
     res.status(201).send(result)
 })
