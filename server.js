@@ -270,7 +270,7 @@ app.post('/cart', middleWare, async (req, res, next) => {
     }
     res.status(201).send(result)
 })
-app.get('/', middleWare, async (req, res, next) => {
+app.get('/',  async (req, res, next) => {
     res.send("server is running").status(200);
 });
 
