@@ -1,6 +1,7 @@
 const Express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const paginate = require('mongoose-paginate-v2');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -26,6 +27,7 @@ const productSchema = new mongoose.Schema({
     origin: { type: String, required: true },
     description: { type: String, required: true },
 });
+productSchema.plugin(paginate);
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true },
@@ -38,12 +40,13 @@ userSchema.methods.toJSON = function () {
     return obj
 }
 const cartSchema = new mongoose.Schema({
-    user: mongoose.Types.ObjectId,
-    products: { type: Array }
+    user: {type: String},
+    product: { type: Object },
+    quantity: {type: Number}
 })
 const userModel = mongoose.model('user', userSchema);
 const productModel = mongoose.model('product', productSchema);
-
+const cartModel = mongoose.model('cart', cartSchema);
 // middleware
 const middleWare = async (req, res, next) => {
     try {
@@ -116,26 +119,6 @@ app.post('/logout',(req, res)=>{
         res.status(400).send('Bad Request');
     }
 })
-// Products section;
-// app.get('/products', async (req, res, next) => {
-    
-//     let result;
-//     try {
-//         if(req.query.sortBy) {
-//             const sortBy = req.query.sortBy
-//             const [field, order] = sortBy.split('|');
-//             console.log(field, order);
-//             result = await productModel.find({}).sort({ field : order === 'asc' ? 1 : -1 }).limit(req.query.limit || 6);
-//             return res.send(result);
-//         }
-
-//         result = await productModel.find({}).limit(req.query.limit || 6);
-//         return res.send(result);
-//     } catch (error) {
-//         console.log(error)
-//         return res.status(400).send("bad Request");
-//     }
-// });
 
 app.get('/products', async (req, res, next) => {
     try {
@@ -169,6 +152,15 @@ app.get('/products/me', middleWare, async (req, res, next) => {
     }
     res.send(result)
 });
+app.get('/products/:id',middleWare,async (req, res)=>{
+    const id = req.params.id;
+    try{
+        const result = await productModel.findOne({_id: id});
+        res.status(200).send(result);
+    }catch(error){
+        res.status(404).send('bad request');
+    }
+})
 app.post('/products', async (req, res,) => {
     const { foodName, foodImage, foodCategory, price, quantity, creator, origin, description } = req.body;
     let result;
@@ -220,23 +212,47 @@ app.delete('/products/:id', middleWare, async (req, res) => {
 
 // Cart Section
 app.get('/cart', middleWare, async (req, res, next) => {
-    const token = req.headers.cookie.split("=")[1];
-    const userData = jwt.verify(token, process.env.SALT, (error, decoded) => {
-        if (error) {
-            return res.send('Bad Request');
-        } else {
-            return {
-                userId: decoded.user_id,
-                email: decoded.email
-            }
-        }
-    })
-    console.log(userData);
-    res.send('cart api')
-})
+   const user = req.user;
+   console.log(user);
+   let result;
+    try{
+        result = await cartModel.find({user:user.email}).exec();
+    }catch(error){
+      return  res.status(400).send('bad request');
+    }
+    res.status(201).send(result);
+});
+
+app.delete('/cart/:id', middleWare, async (req, res, next) => {
+    const user = req.user;
+    console.log(user);
+    const id = req.params.id;
+    let result;
+     try{
+        const rem = await cartModel.deleteOne({_id: id});
+        console.log(rem);
+         result = await cartModel.find({user:user.email}).exec();
+         console.log(result);
+     }catch(error){
+       return  res.status(400).send('bad request');
+     }
+     res.status(201).send(result);
+ });
 
 app.post('/cart', middleWare, async (req, res, next) => {
-    res.send("server is running").status(200);
+    const {user, product, quantity} = req.body;
+    const createCart = new cartModel({
+        user,
+        product,
+        quantity
+    });
+    let result;
+    try{
+        result = await createCart.save();
+    }catch(error){
+      return  res.status(400).send('bad request');
+    }
+    res.status(201).send(result)
 })
 app.get('/', middleWare, async (req, res, next) => {
     res.send("server is running").status(200);
