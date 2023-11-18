@@ -274,8 +274,7 @@ app.get('/',  async (req, res, next) => {
     res.send("server is running").status(200);
 });
 
-mongoose.connect(process.env.DB_LINK).then(() => {
-    app.listen(3000, () => {
-        console.log('app listening to port 3000')
-    })
-});
+mongoose.connect(process.env.DB_LINK)
+app.listen(3000, () => {
+    console.log('app listening to port 3000')
+})
