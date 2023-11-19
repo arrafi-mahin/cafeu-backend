@@ -6,10 +6,7 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const app = Express();
-app.use(cors({
-    origin: ['http://localhost:5173'],
-    credentials: true,
-}));
+app.use(cors());
 app.use(Express.json());
 
 // MongoDB
