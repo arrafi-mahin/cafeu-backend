@@ -60,6 +60,10 @@ const middleWare = async (req, res, next) => {
 }
 
 //User section
+async function run(){
+    try{
+        mongoose.connect(process.env.DB_LINK);
+
 app.post('/sign-up', async (req, res, next) => {
     const { email, password, profile, name } = await req.body;
     let result;
@@ -267,11 +271,15 @@ app.post('/cart', middleWare, async (req, res, next) => {
     }
     res.status(201).send(result)
 })
+}finally{
+    console.log('')
+}
+};
+run().catch(console.dir)
 app.get('/',  async (req, res, next) => {
     res.send("server is running").status(200);
 });
 
-mongoose.connect(process.env.DB_LINK)
 app.listen(3000, () => {
-    console.log('app listening to port 3000')
+    console.log('app listening to port 3000');
 })
